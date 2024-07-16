@@ -7,6 +7,9 @@ import com.fintech.banking_app.repository.AccountRepository;
 import com.fintech.banking_app.service.AccountService;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 import static org.springframework.data.jpa.domain.AbstractPersistable_.id;
 
 @Service //creates the spring bean for AccountService Impl
@@ -50,5 +53,33 @@ public class AccountServiceImpl implements AccountService {
        Account savedAccount= accountRepository.save(account);  //saves the new amount into the db
 
         return AccountMapper.mapToAccountDto(savedAccount); //converts accountJPA Entity into accountDTO
+    }
+
+    //logic for withdrawal
+    @Override
+    public AccountDto withdraw(Long id, double amount) {
+        //below 3 lines block checks whether the account exists in the db
+        Account account = accountRepository
+                .findById(id)
+                .orElseThrow(()-> new RuntimeException("The account does not exist"));
+
+        if (account.getBalance()<amount){
+            throw new RuntimeException("Insufficient funds");
+        }
+        double total=account.getBalance()-amount;  //logic for what will be left after withdrawal
+        account.setBalance(total);
+
+        Account savedAccount=accountRepository.save(account); //save the amount left on the database
+
+        return AccountMapper.mapToAccountDto(savedAccount); //converts account entity to account dto
+    }
+
+    //logic for getting all accounts
+    @Override
+    public List<AccountDto> getAllAccounts() {
+        List<Account> accounts = accountRepository.findAll();
+        return accounts.stream().map((account)->AccountMapper.mapToAccountDto(account))
+                .collect(Collectors.toList());
+
     }
 }
